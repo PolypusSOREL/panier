@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Panier">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<title>Panier 0.1</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  background: #fff; color: #000; font-size: 20px; line-height: 1.3;
+  padding-bottom: calc(40px + env(safe-area-inset-bottom));
+}
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+input { font: inherit; }
+
+/* En-tête fixe */
+.entete {
+  position: sticky; top: 0; z-index: 10; background: #fff;
+  border-bottom: 3px solid #000; padding: calc(8px + env(safe-area-inset-top)) 12px 0;
+}
+.titre { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.titre h1 { font-size: 28px; font-weight: 800; }
+.semaine { font-size: 16px; color: #333; text-align: right; }
+.onglets { display: flex; margin-top: 8px; }
+.onglets button {
+  flex: 1; padding: 12px 4px; font-size: 20px; font-weight: 700;
+  border-bottom: 5px solid transparent; color: #555;
+}
+.onglets button.actif { color: #000; border-bottom-color: #000; }
+
+/* Filtres magasins */
+.magasins { display: flex; gap: 8px; overflow-x: auto; padding: 12px; -webkit-overflow-scrolling: touch; }
+.magasins button {
+  flex: none; padding: 10px 16px; border: 2px solid #000; border-radius: 24px;
+  font-size: 18px; font-weight: 600; background: #fff;
+}
+.magasins button.actif { background: #000; color: #fff; }
+
+.recherche { padding: 12px; }
+.recherche input {
+  width: 100%; padding: 14px 16px; font-size: 22px; border: 3px solid #000; border-radius: 12px;
+  -webkit-appearance: none; appearance: none;
+}
+.aide { font-size: 17px; color: #333; padding: 0 12px 8px; }
+
+/* Sections */
+.section { margin-top: 6px; }
+.section > button.entete-section {
+  width: 100%; text-align: left; padding: 14px 12px; background: #000; color: #fff;
+  font-size: 20px; font-weight: 800; display: flex; justify-content: space-between;
+}
+.section.repliee .lignes { display: none; }
+
+/* Lignes de produits */
+.ligne { border-bottom: 1px solid #bbb; }
+.ligne > button { width: 100%; text-align: left; padding: 14px 12px; display: block; }
+.nom { font-size: 21px; font-weight: 600; }
+.nom .photo { font-size: 18px; margin-left: 4px; }
+.details { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 4px; font-size: 18px; }
+.mag { font-weight: 800; }
+.prix { font-weight: 800; }
+.rabais { font-weight: 800; border: 2px solid #000; border-radius: 6px; padding: 0 6px; }
+.rabais.super { background: #000; color: #fff; }
+.unitaire { color: #333; }
+.ouvert { padding: 0 12px 16px; font-size: 18px; }
+.ouvert img { display: block; max-width: 100%; max-height: 60vh; margin: 4px auto 10px; }
+.ouvert p { margin: 4px 0; }
+.meilleur { border-left: 8px solid #000; }
+.meilleur-etiquette { font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+
+.vide { padding: 24px 12px; font-size: 20px; }
+.bientot { padding: 24px 12px; font-size: 20px; }
+.bientot h2 { font-size: 24px; margin-bottom: 10px; }
+.pied { padding: 20px 12px; font-size: 15px; color: #444; }
+.cache { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="entete">
+  <div class="titre">
+    <h1>Panier</h1>
+    <div class="semaine" id="semaine">Chargement…</div>
+  </div>
+  <div class="onglets">
+    <button data-onglet="aubaines" class="actif">Aubaines</button>
+    <button data-onglet="comparer">Comparer</button>
+    <button data-onglet="plus">Menus</button>
+  </div>
+</div>
+
+<!-- AUBAINES -->
+<div id="aubaines">
+  <div class="magasins" id="filtres"></div>
+  <div class="recherche"><input id="filtre-texte" type="search" placeholder="Filtrer (ex. poulet)" autocomplete="off" autocorrect="off"></div>
+  <div id="liste-aubaines"></div>
+</div>
+
+<!-- COMPARER -->
+<div id="comparer" class="cache">
+  <div class="recherche"><input id="cherche" type="search" placeholder="Chercher un produit (ex. beurre)" autocomplete="off" autocorrect="off"></div>
+  <p class="aide">Les résultats sont classés du moins cher au plus cher, au kilo ou au litre quand c'est possible.</p>
+  <div id="liste-comparer"></div>
+</div>
+
+<!-- MENUS (à venir) -->
+<div id="plus" class="cache">
+  <div class="bientot">
+    <h2>Bientôt</h2>
+    <p>Menus de la semaine, recettes et liste d'épicerie dans l'ordre des rangées arrivent dans les prochaines versions.</p>
+  </div>
+</div>
+
+<div class="pied" id="pied"></div>
+
+<script>
+var DONNEES = (location.pathname.indexOf('/essai/') >= 0 ? '../' : '') + 'data/circulaires.json';
+var MAGASINS = ['Metro', 'Super C', 'Maxi', 'IGA'];
+var produits = [], magasinChoisi = 'Tous', ouverts = {};
+
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+function sansAccent(s) { return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+function argent(n) { return n == null ? '' : n.toFixed(2).replace('.', ',') + '$'; }
+var MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+function dateCourte(iso) { var p = iso.split('-'); return parseInt(p[2], 10) + ' ' + MOIS[parseInt(p[1], 10) - 1]; }
+
+// Nom lisible : on garde la partie française (« BEURRE | BUTTER » -> « Beurre »)
+function nomPropre(n) {
+  var s = n.split(' | ')[0].trim();
+  if (s === s.toUpperCase()) s = s.toLowerCase();
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function texteRecherche(p) { return sansAccent(p.nom + ' ' + (p.marque || '') + ' ' + (p.description || '')); }
+
+function correspond(p, q) {
+  if (!q) return true;
+  var t = p._t;
+  return sansAccent(q).split(/\s+/).filter(Boolean).every(function (m) { return t.indexOf(m) >= 0; });
+}
+
+function ligneHTML(p, extra) {
+  var badge = p.rabais ? '<span class="rabais' + (p.rabais >= 40 ? ' super' : '') + '">-' + p.rabais + '%</span>' : '';
+  var unit = p.prix_comparable ? '<span class="unitaire">' + argent(p.prix_comparable) + '/' + p.base_comparable + '</span>' : '';
+  var ouvert = ouverts[p.id];
+  var h = '<div class="ligne' + (extra && extra.meilleur ? ' meilleur' : '') + '">';
+  h += '<button data-id="' + p.id + '">';
+  if (extra && extra.meilleur) h += '<div class="meilleur-etiquette">Meilleur prix</div>';
+  h += '<div class="nom">' + esc(nomPropre(p.nom)) + (p.image ? '<span class="photo">📷</span>' : '') + '</div>';
+  h += '<div class="details"><span class="mag">' + esc(p.magasin) + '</span><span class="prix">' + esc(p.prix_affiche || '') + '</span>' + badge + unit + '</div>';
+  h += '</button>';
+  if (ouvert) {
+    h += '<div class="ouvert">';
+    if (p.image) h += '<img src="' + esc(p.image) + '" alt="" loading="lazy">';
+    if (p.marque) h += '<p><b>Marque :</b> ' + esc(p.marque) + '</p>';
+    if (p.description) h += '<p>' + esc(p.description).replace(/\n+/g, '<br>') + '</p>';
+    if (p.regulier) h += '<p><b>Prix régulier :</b> ' + argent(p.regulier) + '</p>';
+    if (p.format) h += '<p><b>Format :</b> ' + esc(p.format) + '</p>';
+    h += '<p><b>Valide :</b> ' + dateCourte(p.debut) + ' au ' + dateCourte(p.fin) + '</p>';
+    if (p.en_magasin_seulement) h += '<p>En magasin seulement</p>';
+    h += '</div>';
+  }
+  return h + '</div>';
+}
+
+function sectionHTML(cle, titre, liste, repliee) {
+  if (!liste.length) return '';
+  var rep = ouverts['sec-' + cle] === undefined ? repliee : !ouverts['sec-' + cle];
+  return '<div class="section' + (rep ? ' repliee' : '') + '"><button class="entete-section" data-section="' + cle + '"><span>' + titre + '</span><span>' + liste.length + (rep ? ' ▸' : ' ▾') + '</span></button><div class="lignes">' +
+    liste.map(function (p) { return ligneHTML(p); }).join('') + '</div></div>';
+}
+
+function afficherAubaines() {
+  var q = $('filtre-texte').value.trim();
+  var l = produits.filter(function (p) { return (magasinChoisi === 'Tous' || p.magasin === magasinChoisi) && correspond(p, q); });
+  var tri = function (a, b) { return (b.rabais || 0) - (a.rabais || 0); };
+  var sup = l.filter(function (p) { return p.rabais >= 40; }).sort(tri);
+  var bon = l.filter(function (p) { return p.rabais >= 25 && p.rabais < 40; }).sort(tri);
+  var pet = l.filter(function (p) { return p.rabais && p.rabais < 25; }).sort(tri);
+  var inc = l.filter(function (p) { return !p.rabais; }).sort(function (a, b) { return nomPropre(a.nom).localeCompare(nomPropre(b.nom), 'fr'); });
+  var h = sectionHTML('super', 'Super spécial (40% et plus)', sup, false) +
+    sectionHTML('bon', 'Bon rabais (25% à 39%)', bon, false) +
+    sectionHTML('petit', 'Petit rabais (moins de 25%)', pet, true) +
+    sectionHTML('inconnu', 'Rabais non indiqué', inc, true);
+  $('liste-aubaines').innerHTML = h || '<p class="vide">Aucun produit trouvé.</p>';
+}
+
+function afficherComparer() {
+  var q = $('cherche').value.trim();
+  if (q.length < 2) { $('liste-comparer').innerHTML = '<p class="vide">Tape au moins 2 lettres.</p>'; return; }
+  var l = produits.filter(function (p) { return correspond(p, q); });
+  if (!l.length) { $('liste-comparer').innerHTML = '<p class="vide">Aucun produit en circulaire cette semaine pour « ' + esc(q) + ' ».</p>'; return; }
+  // D'abord ceux qu'on peut comparer (même base : kg ou L), du moins cher au plus cher
+  var bases = {};
+  l.forEach(function (p) { if (p.prix_comparable) bases[p.base_comparable] = (bases[p.base_comparable] || 0) + 1; });
+  var base = Object.keys(bases).sort(function (a, b) { return bases[b] - bases[a]; })[0];
+  var comp = l.filter(function (p) { return p.prix_comparable && p.base_comparable === base; })
+    .sort(function (a, b) { return a.prix_comparable - b.prix_comparable; });
+  var autres = l.filter(function (p) { return comp.indexOf(p) < 0; }).sort(function (a, b) { return (a.prix || 999) - (b.prix || 999); });
+  var h = '';
+  if (comp.length) {
+    h += '<div class="section"><button class="entete-section" disabled><span>Comparés au ' + (base === 'L' ? 'litre' : 'kilo') + '</span><span>' + comp.length + '</span></button><div class="lignes">' +
+      comp.map(function (p, i) { return ligneHTML(p, { meilleur: i === 0 && comp.length > 1 }); }).join('') + '</div></div>';
+  }
+  if (autres.length) {
+    h += '<div class="section"><button class="entete-section" disabled><span>' + (comp.length ? 'Autres formats' : 'Résultats') + '</span><span>' + autres.length + '</span></button><div class="lignes">' +
+      autres.map(function (p) { return ligneHTML(p); }).join('') + '</div></div>';
+  }
+  $('liste-comparer').innerHTML = h;
+}
+
+function filtresHTML() {
+  $('filtres').innerHTML = ['Tous'].concat(MAGASINS).map(function (m) {
+    return '<button class="' + (m === magasinChoisi ? 'actif' : '') + '" data-mag="' + m + '">' + m + '</button>';
+  }).join('');
+}
+
+// Événements
+document.querySelector('.onglets').addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  document.querySelectorAll('.onglets button').forEach(function (x) { x.classList.toggle('actif', x === b); });
+  ['aubaines', 'comparer', 'plus'].forEach(function (id) { $(id).classList.toggle('cache', id !== b.dataset.onglet); });
+  window.scrollTo(0, 0);
+});
+$('filtres').addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  magasinChoisi = b.dataset.mag; filtresHTML(); afficherAubaines();
+});
+function clicListe(e, refaire) {
+  var s = e.target.closest('[data-section]');
+  if (s) { var k = 'sec-' + s.dataset.section; var repliee = s.parentNode.classList.contains('repliee'); ouverts[k] = repliee; refaire(); return; }
+  var b = e.target.closest('button[data-id]');
+  if (b) { ouverts[b.dataset.id] = !ouverts[b.dataset.id]; refaire(); }
+}
+$('liste-aubaines').addEventListener('click', function (e) { clicListe(e, afficherAubaines); });
+$('liste-comparer').addEventListener('click', function (e) { clicListe(e, afficherComparer); });
+var minuterie;
+function differe(f) { return function () { clearTimeout(minuterie); minuterie = setTimeout(f, 200); }; }
+$('filtre-texte').addEventListener('input', differe(afficherAubaines));
+$('cherche').addEventListener('input', differe(afficherComparer));
+
+// Chargement des données
+fetch(DONNEES, { cache: 'no-cache' }).then(function (r) { return r.json(); }).then(function (d) {
+  produits = d.produits.map(function (p) { p._t = texteRecherche(p); return p; });
+  var hebdo = d.circulaires.filter(function (c) { return c.fin && c.debut; });
+  var debut = hebdo.map(function (c) { return c.debut; }).sort()[0];
+  var fins = hebdo.map(function (c) { return c.fin; }).sort();
+  var fin = fins[Math.floor(fins.length / 2)];
+  $('semaine').textContent = 'Du ' + dateCourte(debut) + ' au ' + dateCourte(fin);
+  var maj = new Date(d.mis_a_jour);
+  $('pied').innerHTML = 'Panier 0.1 · ' + produits.length + ' produits en circulaire · mis à jour le ' + maj.toLocaleDateString('fr-CA') + '<br>Source : circulaires publiées sur Flipp. Vérifiez le prix en magasin.';
+  filtresHTML(); afficherAubaines();
+}).catch(function () {
+  $('semaine').textContent = '';
+  $('liste-aubaines').innerHTML = '<p class="vide">Impossible de charger les circulaires. Vérifie ta connexion Internet.</p>';
+});
+
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  navigator.serviceWorker.register('sw.js').then(function (reg) { reg.update(); }).catch(function () {});
+}
+</script>
+</body>
+</html>

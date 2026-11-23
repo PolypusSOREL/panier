@@ -1,0 +1,35 @@
+name: Circulaires de la semaine
+
+on:
+  schedule:
+    - cron: '17 10 * * *'   # chaque jour vers 5h17 (heure de l'Est)
+  workflow_dispatch:         # bouton « Run workflow » pour lancer à la main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: circulaires
+  cancel-in-progress: false
+
+jobs:
+  recuperer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Récupérer les circulaires (Metro, Super C, Maxi, IGA)
+        run: python scripts/circulaires.py
+      - name: Publier si quelque chose a changé
+        run: |
+          git config user.name "panier-robot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/circulaires.json
+          if git diff --cached --quiet; then
+            echo "Aucun changement."
+          else
+            git commit -m "Circulaires du $(date +%Y-%m-%d)"
+            git push
+          fi
